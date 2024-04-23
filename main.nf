@@ -389,7 +389,7 @@ workflow {
     bwa_index = INDEX_REF(reference)
     fai_index = FAI_REF(reference)
     seq_dict = DICT_REF(reference)
-    fastq = Channel.fromFilePairs("${params.fastq}/*_{R1,R2}.fastq")
+    fastq = Channel.fromFilePairs("${params.fastq}/*_{R1,R2}.fastq.gz")
     ubams = GENERATE_UBAM(fastq)
     merged_fastq = SAM_TO_FASTQ(ubams)
     adapterMarked_fastq = MARK_ILLUMINA_ADAPTERS(ubams)
