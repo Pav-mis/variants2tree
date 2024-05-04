@@ -9,7 +9,6 @@ workflow UBAM_QC_AND_MAPPING {
         seq_dict
 
     main:
-        SAM_TO_FASTQ(reads, ubams)
         MARK_ILLUMINA_ADAPTERS(reads, ubams)
         ALIGN_TO_REF(MARK_ILLUMINA_ADAPTERS.out, reference, bwa_index)
         SORT_AND_INDEX_BAM(ALIGN_TO_REF.out)

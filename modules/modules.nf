@@ -1,4 +1,6 @@
 process INDEX_REF {
+    container 'docker://quay.io/biocontainers/bwa:0.7.17--he4a0461_11'
+
     input:
     path reference 
 
@@ -11,6 +13,8 @@ process INDEX_REF {
 }
 
 process FAI_REF {
+    container 'docker://quay.io/biocontainers/samtools:1.17--hd87286a_2'
+
     input:
     path reference 
 
@@ -23,6 +27,8 @@ process FAI_REF {
 }
 
 process DICT_REF {
+    container 'docker://broadinstitute/gatk:4.2.6.1'
+
     input:
     path reference 
 
@@ -35,7 +41,7 @@ process DICT_REF {
 }
 
 process GENERATE_UBAM {
-    errorStrategy 'ignore'
+    container 'docker://broadinstitute/gatk:4.2.6.1'
     
     input:
     tuple val(sampleId), file(reads)
@@ -64,27 +70,10 @@ process GENERATE_UBAM {
 
 }
 
-process SAM_TO_FASTQ {
-    input:
-    tuple val(sampleId), file(reads)
-    path ubam
-
-    output:
-    path "${sampleId}.fastq"
-    
-
-    """
-    gatk SamToFastq \
-	    -I ${ubam} \
-	    -FASTQ ${sampleId}.fastq \
-	    -CLIPPING_ATTRIBUTE XT \
-	    -CLIPPING_ACTION 2 \
-	    -INTERLEAVE true \
-	    -NON_PF true
-    """
-}
 
 process MARK_ILLUMINA_ADAPTERS {
+    container 'docker://broadinstitute/gatk:4.2.6.1'
+
     input:
     tuple val(sampleId), file(reads)
     path ubam
@@ -112,6 +101,8 @@ process MARK_ILLUMINA_ADAPTERS {
 }
 
 process ALIGN_TO_REF {
+    container 'docker://quay.io/biocontainers/bwa:0.7.17--he4a0461_11'
+
     input:
     path fastq
     tuple val(sampleId), file(reads)
@@ -120,7 +111,7 @@ process ALIGN_TO_REF {
     path reference_index
 
     output:
-    path "${fastq.simpleName}.sam"
+    path "${fastq.simpleName}.bam"
     tuple val(sampleId), file(reads)
     path ubam
 
@@ -129,11 +120,13 @@ process ALIGN_TO_REF {
         -M \
         -t ${task.cpus} \
         -p ${reference} \
-        ${fastq} > ${fastq.simpleName}.sam
+        ${fastq} > ${fastq.simpleName}.bam
     """
 }
 
 process SORT_AND_INDEX_BAM {
+    container 'docker://quay.io/biocontainers/samtools:1.17--hd87286a_2'
+
     input:
     path sam
     tuple val(sampleId), file(reads)
@@ -153,6 +146,8 @@ process SORT_AND_INDEX_BAM {
 }
 
 process MARK_DUPLICATES {
+    container 'docker://broadinstitute/gatk:4.2.6.1'
+
     input:
     path bam
     tuple val(sampleId), file(reads)
@@ -172,6 +167,8 @@ process MARK_DUPLICATES {
 }
 
 process MERGE_BAM_WITH_UBAM {
+    container 'docker://broadinstitute/gatk:4.2.6.1'
+
     input:
     path bam
     tuple val(sampleId), file(reads)
@@ -199,6 +196,8 @@ process MERGE_BAM_WITH_UBAM {
 }
 
 process VARIANT_CALLING {
+    container 'docker://broadinstitute/gatk:4.2.6.1'
+
     input:
     path ubam
     path bam
@@ -228,6 +227,8 @@ process VARIANT_CALLING {
 }
 
 process COMBINE_AND_GENOTYPE_VCF {
+    container 'docker://broadinstitute/gatk:4.2.6.1'
+
     input:
     path gvcfs
     path reference
@@ -254,6 +255,8 @@ process COMBINE_AND_GENOTYPE_VCF {
 
 
 process FILTER_SNPS_AND_INDELS {
+    container 'docker://broadinstitute/gatk:4.2.6.1'
+
     input:
     path vcf
     path vcf_index
@@ -283,6 +286,8 @@ process FILTER_SNPS_AND_INDELS {
 }
 
 process QUALITY_FILTER_VARIANTS {
+    container 'docker://broadinstitute/gatk:4.2.6.1'
+
     input:
     path snp_vcf
     path snp_vcf_index
@@ -323,6 +328,8 @@ process QUALITY_FILTER_VARIANTS {
 }
 
 process FINAL_FILTER_VARIANTS {
+    container 'docker://staphb/bcftools:1.17'
+
     input:
     path snps
     path snps_idx
@@ -340,7 +347,7 @@ process FINAL_FILTER_VARIANTS {
 	${snps} -o ${params.refname}.combined_panel.filtered.biallelic.snps.bcf
 	
     bcftools +prune \
-        -m 0.9 \
+        -l 0.9 \
         -w 5000bp \
         -n1 \
         -N rand \
@@ -351,6 +358,8 @@ process FINAL_FILTER_VARIANTS {
 }
 
 process VCF_TO_PHYLIP {
+    container 'docker://quay.io/biocontainers/python:3.12'
+
     input:
     path vcf
 
@@ -360,13 +369,14 @@ process VCF_TO_PHYLIP {
     """
     python3 $projectDir/bin/vcf2phylip.py \
 	    -i ${vcf} \
-        -m 1 \
 	    --fasta \
 	    --nexus
     """
 }
 
 process GENERATE_TREE {
+    container 'quay.io/biocontainers/iqtree:1.6.12--he513fc3_1'
+    
     input:
     path phylip
 
